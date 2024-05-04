@@ -11,8 +11,10 @@ void AudioServer::StartServer() {
 }
 
 void AudioServer::HandleClient(tcp::socket socket) {
-  std::string track_name = ReceiveTrackName(socket);
-  StartAudioStream(socket, track_name);
+  while (true) {
+    std::string track_name = ReceiveTrackName(socket);
+    StartAudioStream(socket, track_name);
+  }
 }
 
 void AudioServer::StartAudioStream(tcp::socket& socket,
@@ -21,10 +23,19 @@ void AudioServer::StartAudioStream(tcp::socket& socket,
   sf::SoundBuffer buffer;
   std::string path = "../tracks/" + track_name + ".mp3";
   if (!buffer.loadFromFile(path)) {
-    std::cerr << "Failed to load audio file\n";
+    std::cerr << "Failed to load audio file: " << track_name << std::endl;
+    std::string notification = "Incorrect song name!";
+    size_t notification_len = notification.size();
+    boost::asio::write(socket, boost::asio::buffer(&notification_len,
+                                                   sizeof(notification_len)));
+    boost::asio::write(socket, boost::asio::buffer(notification));
     return;
   }
-
+  std::string notification = "Now playing: " + track_name;
+  size_t notification_len = notification.size();
+  boost::asio::write(
+      socket, boost::asio::buffer(&notification_len, sizeof(notification_len)));
+  boost::asio::write(socket, boost::asio::buffer(notification));
   // Create a sound instance and set its buffer
   sf::Sound sound;
   sound.setBuffer(buffer);

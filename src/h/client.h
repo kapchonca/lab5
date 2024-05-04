@@ -38,7 +38,7 @@ class AudioClient {
   /**
      * @brief Sends the track name to the server.
      */
-  void SendTrackName();
+  bool SendTrackName();
 
   tcp::socket socket_;  ///< The TCP socket for communication with the server.
 };
