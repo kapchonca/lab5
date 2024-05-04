@@ -20,7 +20,7 @@ void AudioServer::HandleClient(tcp::socket socket) {
 
 void AudioServer::StartAudioStream(tcp::socket& socket,
                                    std::string track_name) {
-  // Load your audio file into a buffer
+  // Load audio file into a buffer
   sf::SoundBuffer buffer;
   std::string path = "../tracks/" + track_name + ".mp3";
   if (!buffer.loadFromFile(path)) {
@@ -40,12 +40,12 @@ void AudioServer::StartAudioStream(tcp::socket& socket,
 
   // Send audio data to the client in chunks
   const sf::Int16* samples = buffer.getSamples();
-  std::size_t sampleCount = buffer.getSampleCount();
-  const std::size_t chunkSize = 32;
+  std::size_t sample_count = buffer.getSampleCount();
+  const std::size_t chunk_size = 32;
   std::size_t offset = 0;
 
-  while (offset < sampleCount) {
-    std::size_t chunk = std::min(chunkSize, sampleCount - offset);
+  while (offset < sample_count) {
+    std::size_t chunk = std::min(chunk_size, sample_count - offset);
     boost::asio::write(socket, boost::asio::buffer(samples + offset,
                                                    chunk * sizeof(sf::Int16)));
     offset += chunk;

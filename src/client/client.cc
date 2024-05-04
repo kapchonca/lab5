@@ -5,8 +5,7 @@ void AudioClient::Connect(const tcp::resolver::results_type& endpoints) {
   boost::asio::connect(socket_, endpoints);
   std::cout << "Connected to server\n";
   while (true) {
-    bool ok = SendTrackName();
-    if (ok) {
+    if (SendTrackName()) {
       AcceptAudioStream();
     }
   }
@@ -19,9 +18,9 @@ void AudioClient::AcceptAudioStream() {
 
   // Receive and play audio data
   while (true) {
-    std::vector<sf::Int16> audioData(32);
+    std::vector<sf::Int16> audio_data(32);
     boost::system::error_code error;
-    size_t length = socket_.read_some(boost::asio::buffer(audioData), error);
+    size_t length = socket_.read_some(boost::asio::buffer(audio_data), error);
     if (error == boost::asio::error::eof) {
       break;  // Connection closed cleanly by peer
     } else if (error) {
@@ -29,7 +28,7 @@ void AudioClient::AcceptAudioStream() {
     }
 
     // Load received audio data into the sound buffer
-    buffer.loadFromSamples(audioData.data(), length / sizeof(sf::Int16), 2,
+    buffer.loadFromSamples(audio_data.data(), length / sizeof(sf::Int16), 2,
                            48000);
 
     // Set the buffer to the sound and play it

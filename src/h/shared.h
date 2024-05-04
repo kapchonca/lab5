@@ -13,9 +13,9 @@ using boost::asio::ip::tcp;
  * @param message The string message to send.
  */
 void SendStringToPeer(tcp::socket& socket, const std::string& message) {
-  size_t message_len = message.size();
-  boost::asio::write(socket,
-                     boost::asio::buffer(&message_len, sizeof(message_len)));
+  size_t message_length = message.size();
+  boost::asio::write(
+      socket, boost::asio::buffer(&message_length, sizeof(message_length)));
   boost::asio::write(socket, boost::asio::buffer(message));
 }
 
@@ -26,13 +26,13 @@ void SendStringToPeer(tcp::socket& socket, const std::string& message) {
  * @return The string message received.
  */
 std::string ReceiveStringFromPeer(tcp::socket& socket) {
-  size_t messageLength;
-  boost::asio::read(socket,
-                    boost::asio::buffer(&messageLength, sizeof(messageLength)));
+  size_t message_length;
+  boost::asio::read(
+      socket, boost::asio::buffer(&message_length, sizeof(message_length)));
 
   std::string message;
-  message.resize(messageLength);
-  boost::asio::read(socket, boost::asio::buffer(&message[0], messageLength));
+  message.resize(message_length);
+  boost::asio::read(socket, boost::asio::buffer(&message[0], message_length));
 
   return message;
 }
