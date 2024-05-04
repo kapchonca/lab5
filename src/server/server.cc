@@ -13,8 +13,20 @@ void AudioServer::StartServer() {
 
 void AudioServer::HandleClient(tcp::socket socket) {
   while (true) {
-    std::string track_name = ReceiveTrackName(socket);
-    StartAudioStream(socket, track_name);
+    try {
+      std::string track_name = ReceiveTrackName(socket);
+      StartAudioStream(socket, track_name);
+    } catch (const boost::system::system_error& e) {
+      // Check if the error is due to connection reset by peer or end of file
+      if (e.code() == boost::asio::error::connection_reset) {
+        std::cout << "Client disconnected (connection reset by peer).\n";
+      } else if (e.code() == boost::asio::error::eof) {
+        std::cout << "End of file.\n";
+      } else {
+        std::cerr << "Error reading from socket: " << e.what() << std::endl;
+      }
+      break;
+    }
   }
 }
 
