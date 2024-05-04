@@ -3,14 +3,15 @@
 void AudioServer::StartServer() {
   acceptor_.accept(socket_);
   std::cout << "Client connected\n";
-  StartAudioStream();
-  io_context_.run();
+  std::string track_name = RecieveTrackName();
+  StartAudioStream(track_name);
 }
 
-void AudioServer::StartAudioStream() {
+void AudioServer::StartAudioStream(std::string track_name) {
   // Load your audio file into a buffer
   sf::SoundBuffer buffer;
-  if (!buffer.loadFromFile("../tracks/bp.mp3")) {
+  std::string path = "../tracks/" + track_name + ".mp3";
+  if (!buffer.loadFromFile(path)) {
     std::cerr << "Failed to load audio file\n";
     return;
   }
@@ -34,4 +35,21 @@ void AudioServer::StartAudioStream() {
                                                     chunk * sizeof(sf::Int16)));
     offset += chunk;
   }
+}
+
+std::string AudioServer::RecieveTrackName() {
+
+  // Read the length of the message first
+  size_t messageLength;
+  boost::asio::read(socket_,
+                    boost::asio::buffer(&messageLength, sizeof(messageLength)));
+
+  // Then read the actual message data
+  std::string message;
+  message.resize(messageLength);
+  boost::asio::read(socket_, boost::asio::buffer(&message[0], messageLength));
+
+  std::cout << "Received message from client: " << message << std::endl;
+
+  return message;
 }

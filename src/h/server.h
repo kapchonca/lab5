@@ -4,6 +4,7 @@
 #include <SFML/Audio.hpp>
 #include <boost/asio.hpp>
 #include <iostream>
+#include <string>
 
 using boost::asio::ip::tcp;
 
@@ -30,7 +31,14 @@ class AudioServer {
   /**
    * @brief Starts streaming audio data to the connected client.
    */
-  void StartAudioStream();
+  void StartAudioStream(std::string track_name);
+
+  /**
+ * @brief Receives name of the track to play from client.
+ * 
+ * @return std::string Received name of the track. 
+ */
+  std::string RecieveTrackName();
 
   boost::asio::io_context io_context_;  ///< The Boost ASIO IO context.
   tcp::acceptor acceptor_;  ///< The TCP acceptor for incoming connections.

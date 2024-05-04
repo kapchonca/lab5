@@ -1,59 +1,58 @@
-#include <SFML/Audio.hpp>
-#include <boost/asio.hpp>
-#include <iostream>
+#include "../h/client.h"
 
-using boost::asio::ip::tcp;
-/**
- * @brief Class to accept and play audio received from the server
- */
-class AudioClient {
- public:
-  AudioClient(boost::asio::io_context& io_context,
-              const tcp::resolver::results_type& endpoints)
-      : socket_(io_context) {
-    Connect(endpoints);
-  }
+void AudioClient::Connect(const tcp::resolver::results_type& endpoints) {
+  boost::asio::connect(socket_, endpoints);
+  std::cout << "Connected to server\n";
+  SendTrackName();
+  AcceptAudioStream();
+}
 
- private:
-  void Connect(const tcp::resolver::results_type& endpoints) {
-    boost::asio::connect(socket_, endpoints);
-    std::cout << "Connected to server\n";
-    AcceptAudioStream();
-  }
+void AudioClient::AcceptAudioStream() {
+  // Create a sound instance to play audio
+  sf::Sound sound;
+  sf::SoundBuffer buffer;
 
-  void AcceptAudioStream() {
-    // Create a sound instance to play audio
-    sf::Sound sound;
-    sf::SoundBuffer buffer;
+  // Receive and play audio data
+  while (true) {
+    std::vector<sf::Int16> audioData(32);
+    boost::system::error_code error;
+    size_t length = socket_.read_some(boost::asio::buffer(audioData), error);
+    if (error == boost::asio::error::eof) {
+      break;  // Connection closed cleanly by peer
+    } else if (error) {
+      throw boost::system::system_error(error);
+    }
 
-    // Receive and play audio data
-    while (true) {
-      std::vector<sf::Int16> audioData(32);
-      boost::system::error_code error;
-      size_t length = socket_.read_some(boost::asio::buffer(audioData), error);
-      if (error == boost::asio::error::eof) {
-        break;  // Connection closed cleanly by peer
-      } else if (error) {
-        throw boost::system::system_error(error);
-      }
+    // Load received audio data into the sound buffer
+    buffer.loadFromSamples(audioData.data(), length / sizeof(sf::Int16), 2,
+                           48000);
 
-      // Load received audio data into the sound buffer
-      buffer.loadFromSamples(audioData.data(), length / sizeof(sf::Int16), 2,
-                             48000);
+    // Set the buffer to the sound and play it
+    sound.setBuffer(buffer);
+    sound.play();
 
-      // Set the buffer to the sound and play it
-      sound.setBuffer(buffer);
-      sound.play();
-
-      // Wait until sound playback is finished
-      while (sound.getStatus() == sf::Sound::Playing) {
-        sf::sleep(sf::milliseconds(300));
-      }
+    // Wait until sound playback is finished
+    while (sound.getStatus() == sf::Sound::Playing) {
+      sf::sleep(sf::milliseconds(500));
     }
   }
+}
 
-  tcp::socket socket_;
-};
+void AudioClient::SendTrackName() {
+  std::string message;
+  std::cin >> message;
+
+  size_t messageLength = message.size();
+
+  // Send the length of the message first
+  boost::asio::write(
+      socket_, boost::asio::buffer(&messageLength, sizeof(messageLength)));
+
+  // Then send the actual message data
+  boost::asio::write(socket_, boost::asio::buffer(message));
+
+  std::cout << "Message sent to server: " << message << std::endl;
+}
 
 int main() {
   try {
