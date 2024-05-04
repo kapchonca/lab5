@@ -14,9 +14,9 @@ using boost::asio::ip::tcp;
 class AudioServer {
  public:
   /**
-   * @brief Constructs an AudioServer object.
-   * @param endpoint The TCP endpoint to listen on.
-   */
+     * @brief Constructs an AudioServer object.
+     * @param endpoint The TCP endpoint to listen on.
+     */
   AudioServer(const tcp::endpoint& endpoint)
       : io_context_(), acceptor_(io_context_, endpoint), socket_(io_context_) {
     StartServer();
@@ -24,21 +24,29 @@ class AudioServer {
 
  private:
   /**
-   * @brief Starts the server and waits for a client to connect.
-   */
+     * @brief Starts the server and waits for clients to connect.
+     */
   void StartServer();
 
   /**
-   * @brief Starts streaming audio data to the connected client.
-   */
-  void StartAudioStream(std::string track_name);
+     * @brief Handles a connected client.
+     * @param socket The TCP socket for communication with the client.
+     */
+  void HandleClient(tcp::socket socket);
 
   /**
- * @brief Receives name of the track to play from client.
- * 
- * @return std::string Received name of the track. 
- */
-  std::string RecieveTrackName();
+     * @brief Starts streaming audio data to the connected client.
+     * @param socket The TCP socket for communication with the client.
+     * @param track_name The name of the track to stream to the client.
+     */
+  void StartAudioStream(tcp::socket& socket, std::string track_name);
+
+  /**
+     * @brief Receives the name of the track to play from the client.
+     * @param socket The TCP socket for communication with the client.
+     * @return std::string The received name of the track.
+     */
+  std::string ReceiveTrackName(tcp::socket& socket);
 
   boost::asio::io_context io_context_;  ///< The Boost ASIO IO context.
   tcp::acceptor acceptor_;  ///< The TCP acceptor for incoming connections.
