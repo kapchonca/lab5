@@ -1,4 +1,5 @@
 #include "../h/server.h"
+#include "../h/shared.h"
 
 void AudioServer::StartServer() {
   while (true) {
@@ -25,17 +26,11 @@ void AudioServer::StartAudioStream(tcp::socket& socket,
   if (!buffer.loadFromFile(path)) {
     std::cerr << "Failed to load audio file: " << track_name << std::endl;
     std::string notification = "Incorrect song name!";
-    size_t notification_len = notification.size();
-    boost::asio::write(socket, boost::asio::buffer(&notification_len,
-                                                   sizeof(notification_len)));
-    boost::asio::write(socket, boost::asio::buffer(notification));
+    SendStringToPeer(socket, notification);
     return;
   }
   std::string notification = "Now playing: " + track_name;
-  size_t notification_len = notification.size();
-  boost::asio::write(
-      socket, boost::asio::buffer(&notification_len, sizeof(notification_len)));
-  boost::asio::write(socket, boost::asio::buffer(notification));
+  SendStringToPeer(socket, notification);
   // Create a sound instance and set its buffer
   sf::Sound sound;
   sound.setBuffer(buffer);
@@ -58,17 +53,7 @@ void AudioServer::StartAudioStream(tcp::socket& socket,
 }
 
 std::string AudioServer::ReceiveTrackName(tcp::socket& socket) {
-  // Read the length of the message first
-  size_t messageLength;
-  boost::asio::read(socket,
-                    boost::asio::buffer(&messageLength, sizeof(messageLength)));
-
-  // Then read the actual message data
-  std::string message;
-  message.resize(messageLength);
-  boost::asio::read(socket, boost::asio::buffer(&message[0], messageLength));
-
+  std::string message = ReceiveStringFromPeer(socket);
   std::cout << "Received message from client: " << message << std::endl;
-
   return message;
 }

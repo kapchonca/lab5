@@ -1,4 +1,5 @@
 #include "../h/client.h"
+#include "../h/shared.h"
 
 void AudioClient::Connect(const tcp::resolver::results_type& endpoints) {
   boost::asio::connect(socket_, endpoints);
@@ -46,26 +47,12 @@ bool AudioClient::SendTrackName() {
   std::string message;
   std::cin >> message;
 
-  size_t messageLength = message.size();
-
-  // Send the length of the message first
-  boost::asio::write(
-      socket_, boost::asio::buffer(&messageLength, sizeof(messageLength)));
-
-  // Then send the actual message data
-  boost::asio::write(socket_, boost::asio::buffer(message));
+  SendStringToPeer(socket_, message);
 
   std::cout << "Message sent to server: " << message << std::endl;
 
-  size_t receive_mes_len;
-  boost::asio::read(
-      socket_, boost::asio::buffer(&receive_mes_len, sizeof(receive_mes_len)));
+  std::string receive_mes = ReceiveStringFromPeer(socket_);
 
-  // Then read the actual message data
-  std::string receive_mes;
-  receive_mes.resize(receive_mes_len);
-  boost::asio::read(socket_,
-                    boost::asio::buffer(&receive_mes[0], receive_mes_len));
   std::cout << receive_mes << std::endl;
   if (receive_mes[0] == 'N') {
     return true;
