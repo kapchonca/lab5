@@ -59,13 +59,16 @@ bool AudioClient::SendTrackName() {
   return false;
 }
 
-int main() {
+int main(int argc, char* argv[]) {
+  if (argc != 3) {
+    std::cerr << "Usage: ./lab5_test <address> <port>\n";
+    return -1;
+  }
   try {
     boost::asio::io_context io_context;
     tcp::resolver resolver(io_context);
-    auto endpoints = resolver.resolve("localhost", "8888");
+    auto endpoints = resolver.resolve(argv[1], argv[2]);
     AudioClient client(io_context, endpoints);
-    io_context.run();
   } catch (std::exception& e) {
     std::cerr << "Exception: " << e.what() << std::endl;
   }
