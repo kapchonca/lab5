@@ -12,13 +12,12 @@ void AudioClient::Connect(const tcp::resolver::results_type& endpoints) {
 }
 
 void AudioClient::AcceptAudioStream() {
-  // Create a sound instance to play audio
-  sf::Sound sound;
-  sf::SoundBuffer buffer;
+  // Create a music instance to play audio
+  sf::Music music;
 
   // Receive and play audio data
   while (true) {
-    std::vector<sf::Int16> audio_data(32);
+    std::vector<sf::Int16> audio_data(1024000);
     boost::system::error_code error;
     size_t length = socket_.read_some(boost::asio::buffer(audio_data), error);
     if (error == boost::asio::error::eof) {
@@ -27,17 +26,23 @@ void AudioClient::AcceptAudioStream() {
       throw boost::system::system_error(error);
     }
 
-    // Load received audio data into the sound buffer
+    // Load received audio data into a temporary buffer
+    sf::SoundBuffer buffer;
     buffer.loadFromSamples(audio_data.data(), length / sizeof(sf::Int16), 2,
-                           48000);
+                           44100);
 
-    // Set the buffer to the sound and play it
-    sound.setBuffer(buffer);
-    sound.play();
+    // Save temporary buffer to a temporary file
+    buffer.saveToFile("temp_audio.wav");
 
-    // Wait until sound playback is finished
-    while (sound.getStatus() == sf::Sound::Playing) {
-      sf::sleep(sf::milliseconds(500));
+    // Open the temporary file with the music instance
+    music.openFromFile("temp_audio.wav");
+
+    // Play the music
+    music.play();
+
+    // Wait until music playback is finished
+    while (music.getStatus() == sf::SoundSource::Playing) {
+      sf::sleep(sf::milliseconds(1));
     }
   }
 }

@@ -50,7 +50,7 @@ void AudioServer::StartAudioStream(tcp::socket& socket,
   // Send audio data to the client in chunks
   const sf::Int16* samples = buffer.getSamples();
   std::size_t sample_count = buffer.getSampleCount();
-  const std::size_t chunk_size = 32;
+  const std::size_t chunk_size = 1024;
   std::size_t offset = 0;
 
   while (offset < sample_count) {
