@@ -8,12 +8,13 @@ set(GCC_COVERAGE_COMPILE_FLAGS "-Wall -Wextra -std=c++20")
 
 add_definitions(${GCC_COVERAGE_COMPILE_FLAGS})
 
-find_package(SFML 2.5 COMPONENTS audio REQUIRED)
+find_package(Boost 1.70 REQUIRED COMPONENTS system)
+find_package(SFML 2.5 REQUIRED COMPONENTS system audio)
 
-if(SFML_FOUND)
+if(Boost_FOUND AND SFML_FOUND)
     include_directories(${Boost_INCLUDE_DIRS})
     add_executable(lab5 src/server/server.cc src/server/main.cc)
-    target_link_libraries(lab5 PRIVATE sfml-system sfml-audio)
+    target_link_libraries(lab5 PRIVATE ${Boost_LIBRARIES} sfml-system sfml-audio)
 else()
-    message(FATAL_ERROR "SFML is required but was not found. Please install SFML and try again.")
+    message(FATAL_ERROR "Boost Asio and SFML are required but were not found. Please install them and try again.")
 endif()
