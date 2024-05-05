@@ -47,9 +47,6 @@ void AudioServer::StartAudioStream(tcp::socket& socket,
   sf::Sound sound;
   sound.setBuffer(buffer);
 
-  // Play the sound
-  sound.play();
-
   // Send audio data to the client in chunks
   const sf::Int16* samples = buffer.getSamples();
   std::size_t sample_count = buffer.getSampleCount();
