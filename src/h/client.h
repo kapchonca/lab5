@@ -38,16 +38,42 @@ class AudioClient {
   std::pair<int, int> ExtractMetadata(const std::string& metadata);
 
   /**
-     * @brief Accepts audio stream from the server.
-     */
-  void AcceptAudioStream();
+     * @brief Streams audio data from the server.
+     *
+     * The function waits until the playback of each part is finished before fetching the next part.
+    */
+  void BeginAudioStream();
 
   /**
      * @brief Sends the track name to the server.
      */
   bool SendTrackName();
 
+  /**
+    * @brief Fetches a part of the audio track from the server.
+    *
+    * This function reads a chunk of audio data from the network socket and loads
+    * it into the provided sound buffer.
+    *
+    * @param buffer The sound buffer to store the fetched audio data.
+    * @param metadata A pair representing the audio metadata: first value is the
+    *                 channel count, second value is the sample rate.
+    * @return True if audio data was successfully fetched and loaded into the buffer,
+    *         false if the connection was closed or an error occurred.
+    */
+  bool FetchTrackPart(sf::SoundBuffer& buffer, std::pair<int, int>& metadata);
+
+  /**
+     * @brief Handles client requests from the command line.
+     *
+     * This function continuously reads input from the command line and handles
+     * client requests accordingly. Supported commands include "pause", "unpause" and "exit".
+     */
+  void HandleClientRequest();
+
   tcp::socket socket_;  ///< The TCP socket for communication with the server.
+  bool is_paused_ = false;
+  bool is_active_ = true;
 };
 
 #endif  // LAB5_H_CLIENT_H_

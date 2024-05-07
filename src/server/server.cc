@@ -12,7 +12,7 @@ void AudioServer::StartServer() {
 }
 
 void AudioServer::HandleClient(tcp::socket socket) {
-  while (true) {
+  while (socket.is_open()) {
     try {
       std::string track_name = ReceiveTrackName(socket);
       StartAudioStream(socket, track_name);
@@ -22,6 +22,8 @@ void AudioServer::HandleClient(tcp::socket socket) {
         std::cout << "Client disconnected (connection reset by peer).\n";
       } else if (e.code() == boost::asio::error::eof) {
         std::cout << "End of file.\n";
+      } else if (e.code() == boost::asio::error::broken_pipe) {
+        std::cout << "Client has closed the socket\n";
       } else {
         std::cerr << "Error reading from socket: " << e.what() << std::endl;
       }
@@ -53,10 +55,6 @@ void AudioServer::StartAudioStream(tcp::socket& socket,
   std::string notification = "Now playing: " + track_name;
   SendStringToPeer(socket, notification);
 
-  // Create a sound instance and set its buffer
-  sf::Sound sound;
-  sound.setBuffer(buffer);
-
   SendTrackMetaData(socket, buffer);
 
   // Send audio data to the client in chunks
@@ -70,6 +68,10 @@ void AudioServer::StartAudioStream(tcp::socket& socket,
     boost::asio::write(socket, boost::asio::buffer(samples + offset,
                                                    chunk * sizeof(sf::Int16)));
     offset += chunk;
+  }
+  if (socket.is_open()) {
+    socket.shutdown(tcp::socket::shutdown_both);
+    socket.close();
   }
 }
 

@@ -4,9 +4,37 @@
 void AudioClient::Connect(const tcp::resolver::results_type& endpoints) {
   boost::asio::connect(socket_, endpoints);
   std::cout << "Connected to server\n";
-  while (true) {
+  while (socket_.is_open()) {
     if (SendTrackName()) {
-      AcceptAudioStream();
+      std::thread request_thread(&AudioClient::HandleClientRequest, this);
+      BeginAudioStream();
+      request_thread.join();
+    }
+  }
+  std::cout << "Session closed" << std::endl;
+}
+
+void AudioClient::HandleClientRequest() {
+  while (is_active_) {
+    std::string input;
+    std::cin >> input;
+    if (input == "pause") {
+      is_paused_ = true;
+      std::cout << "The track has been paused\n";
+    } else if (input == "unpause") {
+      is_paused_ = false;
+      std::cout << "The track has been unpaused\n";
+    } else if (input == "exit" && is_active_) {
+      std::cout << "Exiting...\n";
+      is_active_ = false;
+      if (socket_.is_open()) {
+        socket_.shutdown(tcp::socket::shutdown_both);
+        socket_.close();
+        break;
+      }
+    } else {
+      std::cout << "Command is not supported. List of the available "
+                   "commands:\n<pause, unpause, exit>\n";
     }
   }
 }
@@ -24,7 +52,28 @@ std::pair<int, int> AudioClient::ExtractMetadata(const std::string& metadata) {
   return std::make_pair(0, 0);
 }
 
-void AudioClient::AcceptAudioStream() {
+bool AudioClient::FetchTrackPart(sf::SoundBuffer& buffer,
+                                 std::pair<int, int>& metadata) {
+  const int channel_count = metadata.first;
+  const int sample_rate = metadata.second;
+  std::vector<sf::Int16> audio_data(512000);  // Store 1 MB at a time
+  boost::system::error_code error;
+  size_t length = socket_.read_some(boost::asio::buffer(audio_data), error);
+
+  if (error == boost::asio::error::eof) {
+    std::cout << "Connection closed\nPress any key to quit" << std::endl;
+    return false;
+  } else if (error) {
+    throw boost::system::system_error(error);
+  }
+
+  buffer.loadFromSamples(audio_data.data(), length / sizeof(sf::Int16),
+                         channel_count, sample_rate);
+
+  return length > 0;
+}
+
+void AudioClient::BeginAudioStream() {
 
   std::string raw_metadata = ReceiveStringFromPeer(socket_);
   std::pair<int, int> metadata = ExtractMetadata(raw_metadata);
@@ -35,24 +84,12 @@ void AudioClient::AcceptAudioStream() {
 
   // Create a music instance to play audio
   sf::Music music;
-  const int channel_count = metadata.first;
-  const int sample_rate = metadata.second;
+  sf::SoundBuffer buffer;
 
   // Receive and play audio data
-  while (true) {
-    std::vector<sf::Int16> audio_data(1024000);  // Store 1 MB at a time
-    boost::system::error_code error;
-    size_t length = socket_.read_some(boost::asio::buffer(audio_data), error);
-    if (error == boost::asio::error::eof) {
-      break;  // Connection closed cleanly by peer
-    } else if (error) {
-      throw boost::system::system_error(error);
-    }
+  while (is_active_ && FetchTrackPart(buffer, metadata)) {
 
     // Load received audio data into a temporary buffer
-    sf::SoundBuffer buffer;
-    buffer.loadFromSamples(audio_data.data(), length / sizeof(sf::Int16),
-                           channel_count, sample_rate);
 
     // Save temporary buffer to a temporary file
     buffer.saveToFile("temp_audio.wav");
@@ -66,7 +103,19 @@ void AudioClient::AcceptAudioStream() {
     // Wait until music playback is finished
     while (music.getStatus() == sf::SoundSource::Playing) {
       sf::sleep(sf::milliseconds(1));
+      while (is_paused_) {
+        music.pause();
+        sf::sleep(sf::milliseconds(300));
+        music.play();
+      }
     }
+  }
+  music.stop();
+  std::remove("temp_audio.wav");
+  is_active_ = false;
+  if (socket_.is_open()) {
+    socket_.shutdown(tcp::socket::shutdown_both);
+    socket_.close();
   }
 }
 
