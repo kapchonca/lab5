@@ -35,6 +35,13 @@ class AudioServer {
   void HandleClient(tcp::socket socket);
 
   /**
+     * @brief Sends track metadata over a TCP socket.
+     * @param socket A reference to the TCP socket used for communication.
+     * @param buffer The sound buffer containing the audio track's data.
+     */
+  void SendTrackMetaData(tcp::socket& socket, const sf::SoundBuffer& buffer);
+
+  /**
      * @brief Starts streaming audio data to the connected client.
      * @param socket The TCP socket for communication with the client.
      * @param track_name The name of the track to stream to the client.

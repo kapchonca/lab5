@@ -31,6 +31,13 @@ class AudioClient {
   void Connect(const tcp::resolver::results_type& endpoints);
 
   /**
+     * @brief Extracts metadata from a string and returns it as a pair of integers.
+     * @param metadata A constant reference to the string containing the metadata.
+     * @return A pair of integers representing the channel count and sample rate respectively.
+     */
+  std::pair<int, int> ExtractMetadata(const std::string& metadata);
+
+  /**
      * @brief Accepts audio stream from the server.
      */
   void AcceptAudioStream();

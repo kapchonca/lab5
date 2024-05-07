@@ -30,11 +30,20 @@ void AudioServer::HandleClient(tcp::socket socket) {
   }
 }
 
+void AudioServer::SendTrackMetaData(tcp::socket& socket,
+                                    const sf::SoundBuffer& buffer) {
+  const int channel_count = buffer.getChannelCount();
+  const int sample_rate = buffer.getSampleRate();
+  std::string metadata =
+      std::to_string(channel_count) + " " + std::to_string(sample_rate);
+  SendStringToPeer(socket, metadata);
+}
+
 void AudioServer::StartAudioStream(tcp::socket& socket,
                                    std::string track_name) {
   // Load audio file into a buffer
   sf::SoundBuffer buffer;
-  std::string path = "../tracks/" + track_name + ".mp3";
+  std::string path = "../tracks/" + track_name + ".flac";
   if (!buffer.loadFromFile(path)) {
     std::cerr << "Failed to load audio file: " << track_name << std::endl;
     std::string notification = "Incorrect song name!";
@@ -43,9 +52,12 @@ void AudioServer::StartAudioStream(tcp::socket& socket,
   }
   std::string notification = "Now playing: " + track_name;
   SendStringToPeer(socket, notification);
+
   // Create a sound instance and set its buffer
   sf::Sound sound;
   sound.setBuffer(buffer);
+
+  SendTrackMetaData(socket, buffer);
 
   // Send audio data to the client in chunks
   const sf::Int16* samples = buffer.getSamples();

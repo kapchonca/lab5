@@ -11,13 +11,36 @@ void AudioClient::Connect(const tcp::resolver::results_type& endpoints) {
   }
 }
 
+std::pair<int, int> AudioClient::ExtractMetadata(const std::string& metadata) {
+  size_t spacePos = metadata.find_first_of(' ');
+  if (spacePos != std::string::npos) {
+    std::string firstNumberStr = metadata.substr(0, spacePos);
+    std::string secondNumberStr = metadata.substr(spacePos + 1);
+
+    int firstNumber = std::stoi(firstNumberStr);
+    int secondNumber = std::stoi(secondNumberStr);
+    return std::make_pair(firstNumber, secondNumber);
+  }
+  return std::make_pair(0, 0);
+}
+
 void AudioClient::AcceptAudioStream() {
+
+  std::string raw_metadata = ReceiveStringFromPeer(socket_);
+  std::pair<int, int> metadata = ExtractMetadata(raw_metadata);
+  if (!metadata.first) {
+    std::cerr << "Could not fetch song metadata\n";
+    return;
+  }
+
   // Create a music instance to play audio
   sf::Music music;
+  const int channel_count = metadata.first;
+  const int sample_rate = metadata.second;
 
   // Receive and play audio data
   while (true) {
-    std::vector<sf::Int16> audio_data(1024000);
+    std::vector<sf::Int16> audio_data(1024000);  // Store 1 MB at a time
     boost::system::error_code error;
     size_t length = socket_.read_some(boost::asio::buffer(audio_data), error);
     if (error == boost::asio::error::eof) {
@@ -28,8 +51,8 @@ void AudioClient::AcceptAudioStream() {
 
     // Load received audio data into a temporary buffer
     sf::SoundBuffer buffer;
-    buffer.loadFromSamples(audio_data.data(), length / sizeof(sf::Int16), 2,
-                           44100);
+    buffer.loadFromSamples(audio_data.data(), length / sizeof(sf::Int16),
+                           channel_count, sample_rate);
 
     // Save temporary buffer to a temporary file
     buffer.saveToFile("temp_audio.wav");
