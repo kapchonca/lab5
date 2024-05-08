@@ -1,5 +1,6 @@
 [requires]
 sfml/2.6.1
+boost/1.76.0
 
 [generators]
 CMakeDeps

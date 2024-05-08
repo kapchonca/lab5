@@ -138,7 +138,7 @@ bool AudioClient::SendTrackName() {
 
 int main(int argc, char* argv[]) {
   if (argc != 3) {
-    std::cerr << "Usage: ./lab5_test <address> <port>\n";
+    std::cerr << "Usage: ./client <address> <port>\n";
     return -1;
   }
   try {
