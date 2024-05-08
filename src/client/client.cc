@@ -32,7 +32,7 @@ void AudioClient::HandleClientRequest() {
         socket_.close();
         break;
       }
-    } else {
+    } else if (is_active_) {
       std::cout << "Command is not supported. List of the available "
                    "commands:\n<pause, unpause, exit>\n";
     }
