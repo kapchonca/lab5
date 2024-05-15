@@ -6,8 +6,9 @@ void AudioServer::StartServer() {
     tcp::socket socket(io_context_);
     acceptor_.accept(socket);
     std::cout << "Client connected\n";
-
-    std::thread(&AudioServer::HandleClient, this, std::move(socket)).detach();
+    thread_pool_.enqueue(
+        [this, &socket]() { this->HandleClient(std::move(socket)); });
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
   }
 }
 
@@ -47,7 +48,6 @@ void AudioServer::StartAudioStream(tcp::socket& socket,
   sf::SoundBuffer buffer;
   std::string path = "../tracks/" + track_name + ".flac";
   if (!buffer.loadFromFile(path)) {
-    std::cerr << "Failed to load audio file: " << track_name << std::endl;
     std::string notification = "Incorrect song name!";
     SendStringToPeer(socket, notification);
     return;

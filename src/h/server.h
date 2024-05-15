@@ -6,6 +6,8 @@
 #include <iostream>
 #include <string>
 
+#include "../h/thread_pool.h"
+
 using boost::asio::ip::tcp;
 
 /**
@@ -58,6 +60,7 @@ class AudioServer {
   boost::asio::io_context io_context_;  ///< The Boost ASIO IO context.
   tcp::acceptor acceptor_;  ///< The TCP acceptor for incoming connections.
   tcp::socket socket_;  ///< The TCP socket for communication with the client.
+  ThreadPool thread_pool_{std::thread::hardware_concurrency()};
 };
 
 #endif  // LAB5_H_SERVER_H_
