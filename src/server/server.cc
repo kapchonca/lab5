@@ -1,5 +1,4 @@
 #include "../h/server.h"
-#include "../h/shared.h"
 
 void AudioServer::StartServer() {
   while (true) {
@@ -78,5 +77,25 @@ void AudioServer::StartAudioStream(tcp::socket& socket,
 std::string AudioServer::ReceiveTrackName(tcp::socket& socket) {
   std::string message = ReceiveStringFromPeer(socket);
   std::cout << "Received message from client: " << message << std::endl;
+  return message;
+}
+
+void AudioServer::SendStringToPeer(tcp::socket& socket,
+                                   const std::string& message) {
+  size_t message_length = message.size();
+  boost::asio::write(
+      socket, boost::asio::buffer(&message_length, sizeof(message_length)));
+  boost::asio::write(socket, boost::asio::buffer(message));
+}
+
+std::string AudioServer::ReceiveStringFromPeer(tcp::socket& socket) {
+  size_t message_length;
+  boost::asio::read(
+      socket, boost::asio::buffer(&message_length, sizeof(message_length)));
+
+  std::string message;
+  message.resize(message_length);
+  boost::asio::read(socket, boost::asio::buffer(&message[0], message_length));
+
   return message;
 }

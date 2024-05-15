@@ -57,6 +57,22 @@ class AudioServer {
      */
   std::string ReceiveTrackName(tcp::socket& socket);
 
+  /**
+ * @brief Sends a string message to a peer over a TCP socket.
+ * 
+ * @param socket The TCP socket to send the message over.
+ * @param message The string message to send.
+ */
+  void SendStringToPeer(tcp::socket& socket, const std::string& message);
+
+  /**
+ * @brief Receives a string message from a peer over a TCP socket.
+ * 
+ * @param socket The TCP socket to receive the message from.
+ * @return The string message received.
+ */
+  std::string ReceiveStringFromPeer(tcp::socket& socket);
+
   boost::asio::io_context io_context_;  ///< The Boost ASIO IO context.
   tcp::acceptor acceptor_;  ///< The TCP acceptor for incoming connections.
   tcp::socket socket_;  ///< The TCP socket for communication with the client.

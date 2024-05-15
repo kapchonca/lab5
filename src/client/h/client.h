@@ -71,6 +71,22 @@ class AudioClient {
      */
   void HandleClientRequest();
 
+  /**
+ * @brief Sends a string message to a peer over a TCP socket.
+ * 
+ * @param socket The TCP socket to send the message over.
+ * @param message The string message to send.
+ */
+  void SendStringToPeer(tcp::socket& socket, const std::string& message);
+
+  /**
+ * @brief Receives a string message from a peer over a TCP socket.
+ * 
+ * @param socket The TCP socket to receive the message from.
+ * @return The string message received.
+ */
+  std::string ReceiveStringFromPeer(tcp::socket& socket);
+
   tcp::socket socket_;  ///< The TCP socket for communication with the server.
   bool is_paused_ = false;
   bool is_active_ = true;

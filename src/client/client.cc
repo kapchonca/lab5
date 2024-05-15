@@ -1,5 +1,4 @@
-#include "../h/client.h"
-#include "../h/shared.h"
+#include "./h/client.h"
 
 void AudioClient::Connect(const tcp::resolver::results_type& endpoints) {
   boost::asio::connect(socket_, endpoints);
@@ -151,4 +150,24 @@ int main(int argc, char* argv[]) {
   }
 
   return 0;
+}
+
+void AudioClient::SendStringToPeer(tcp::socket& socket,
+                                   const std::string& message) {
+  size_t message_length = message.size();
+  boost::asio::write(
+      socket, boost::asio::buffer(&message_length, sizeof(message_length)));
+  boost::asio::write(socket, boost::asio::buffer(message));
+}
+
+std::string AudioClient::ReceiveStringFromPeer(tcp::socket& socket) {
+  size_t message_length;
+  boost::asio::read(
+      socket, boost::asio::buffer(&message_length, sizeof(message_length)));
+
+  std::string message;
+  message.resize(message_length);
+  boost::asio::read(socket, boost::asio::buffer(&message[0], message_length));
+
+  return message;
 }
