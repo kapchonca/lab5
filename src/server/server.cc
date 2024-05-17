@@ -4,14 +4,21 @@ void AudioServer::StartServer() {
   while (true) {
     tcp::socket socket(io_context_);
     acceptor_.accept(socket);
-    std::cout << "Client connected\n";
-    thread_pool_.enqueue(
-        [this, &socket]() { this->HandleClient(std::move(socket)); });
+    std::cout << "Client connected: " << socket.remote_endpoint() << std::endl;
+    if (!thread_pool_.enqueue(
+            [this, &socket]() { this->HandleClient(std::move(socket)); })) {
+      SendStringToPeer(socket, "Server is busy at the moment!\n");
+      socket.shutdown(tcp::socket::shutdown_both);
+      socket.close();
+    }
     std::this_thread::sleep_for(std::chrono::milliseconds(1));
   }
 }
 
 void AudioServer::HandleClient(tcp::socket socket) {
+  SendStringToPeer(socket,
+                   "Welcome to Spopipy! What would you like to listen to "
+                   "today?\n");
   while (socket.is_open()) {
     try {
       std::string track_name = ReceiveTrackName(socket);

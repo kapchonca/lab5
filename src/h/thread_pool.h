@@ -30,12 +30,16 @@ class ThreadPool {
    * @param args The arguments to be passed to the function.
    */
   template <class F, class... Args>
-  void enqueue(F&& f, Args&&... args) {
+  bool enqueue(F&& f, Args&&... args) {
+    if (tasks_.size() > std::thread::hardware_concurrency()) {
+      return false;
+    }
     {
       std::unique_lock<std::mutex> lock(queue_mutex_);
       tasks_.emplace([=] { f(std::forward<Args>(args)...); });
     }
     condition_.notify_one();
+    return true;
   }
 
   /**

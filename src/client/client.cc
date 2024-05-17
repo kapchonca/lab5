@@ -2,7 +2,8 @@
 
 void AudioClient::Connect(const tcp::resolver::results_type& endpoints) {
   boost::asio::connect(socket_, endpoints);
-  std::cout << "Connected to server\n";
+  std::string response = ReceiveStringFromPeer(socket_);
+  std::cout << response;
   while (socket_.is_open()) {
     if (SendTrackName()) {
       std::thread request_thread(&AudioClient::HandleClientRequest, this);
@@ -123,8 +124,6 @@ bool AudioClient::SendTrackName() {
   std::cin >> message;
 
   SendStringToPeer(socket_, message);
-
-  std::cout << "Message sent to server: " << message << std::endl;
 
   std::string receive_mes = ReceiveStringFromPeer(socket_);
 
