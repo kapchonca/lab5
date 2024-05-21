@@ -13,7 +13,7 @@ find_package(SFML 2.5 REQUIRED COMPONENTS system audio)
 
 if(Boost_FOUND AND SFML_FOUND)
     include_directories(${Boost_INCLUDE_DIRS})
-    add_executable(lab5 src/server/server.cc src/server/main.cc src/server/thread_pool.cc)
+    add_executable(lab5 src/server/server.cc src/server/main.cc)
     target_link_libraries(lab5 PRIVATE Boost::system sfml-system sfml-audio)
 else()
     message(FATAL_ERROR "Boost Asio and SFML are required but were not found. Please install them and try again.")
