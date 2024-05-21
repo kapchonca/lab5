@@ -1,11 +1,40 @@
 #include "../h/server.h"
 
+void AudioServer::InitializeLogger() {
+  // Set up console logging
+  logging::add_console_log(
+      std::cout,
+      keywords::format =
+          (expr::stream << expr::attr<boost::posix_time::ptime>("TimeStamp")
+                        << " [" << logging::trivial::severity << "] "
+                        << expr::smessage));
+
+  // Set up file logging
+  logging::add_file_log(
+      keywords::file_name = "../src/logs/server_%N.log",
+      keywords::rotation_size = 10 * 1024 * 1024,  // 10 MB
+      keywords::time_based_rotation =
+          logging::sinks::file::rotation_at_time_point(0, 0, 0),
+      keywords::open_mode = std::ios_base::app,
+      keywords::format =
+          (expr::stream << expr::attr<boost::posix_time::ptime>("TimeStamp")
+                        << " [" << logging::trivial::severity << "] "
+                        << expr::smessage));
+
+  // Add common attributes
+  logging::add_common_attributes();
+  logging::core::get()->add_global_attribute(
+      "Scope", logging::attributes::named_scope());
+}
+
 void AudioServer::StartServer() {
   boost::asio::thread_pool pool(std::thread::hardware_concurrency());
   while (true) {
     tcp::socket socket(io_context_);
     acceptor_.accept(socket);
-    std::cout << "Client connected:" << socket.local_endpoint() << std::endl;
+    BOOST_LOG_SEV(logger_, logging::trivial::info)
+        << "Client connected to server: " << socket.remote_endpoint();
+    logging::core::get()->flush();
     auto shared_socket = std::make_shared<tcp::socket>(std::move(socket));
     boost::asio::post(
         pool, [this, shared_socket]() { this->HandleClient(shared_socket); });
@@ -16,6 +45,7 @@ void AudioServer::StartServer() {
 }
 
 void AudioServer::HandleClient(std::shared_ptr<tcp::socket> socket) {
+  std::string ip_client = GetIpString(socket);
   SendStringToPeer(socket,
                    "Welcome to Spopipy! What would you like to listen to "
                    "today?\n");
@@ -26,14 +56,21 @@ void AudioServer::HandleClient(std::shared_ptr<tcp::socket> socket) {
     } catch (const boost::system::system_error& e) {
       // Check if the error is due to connection reset by peer or end of file
       if (e.code() == boost::asio::error::connection_reset) {
-        std::cout << "Client disconnected (connection reset by peer).\n";
+        BOOST_LOG_SEV(logger_, logging::trivial::warning)
+            << "Client " << ip_client
+            << " disconnected abruptly (connection reset by peer).";
       } else if (e.code() == boost::asio::error::eof) {
-        std::cout << "End of file.\n";
+        BOOST_LOG_SEV(logger_, logging::trivial::warning)
+            << "CLient " << ip_client << " end of file.";
       } else if (e.code() == boost::asio::error::broken_pipe) {
-        std::cout << "Client has closed the socket\n";
+        BOOST_LOG_SEV(logger_, logging::trivial::warning)
+            << "Client " << ip_client << " has closed the socket.";
       } else {
-        std::cerr << "Error reading from socket: " << e.what() << std::endl;
+        BOOST_LOG_SEV(logger_, logging::trivial::error)
+            << "Client " << ip_client
+            << ": unexpected error reading from socket:" << e.what();
       }
+      logging::core::get()->flush();
       break;
     }
   }
@@ -50,21 +87,22 @@ void AudioServer::SendTrackMetaData(std::shared_ptr<tcp::socket> socket,
 
 void AudioServer::StartAudioStream(std::shared_ptr<tcp::socket> socket,
                                    std::string track_name) {
-  // Load audio file into a buffer
-  // std::cout << "FIRST\n";
-  // std::this_thread::sleep_for(std::chrono::seconds(10));
   sf::SoundBuffer buffer;
-  // std::cout << "SECOND";
-  // std::this_thread::sleep_for(std::chrono::seconds(10));
-
   std::string path = "../tracks/" + track_name + ".flac";
   if (!buffer.loadFromFile(path)) {
+    BOOST_LOG_SEV(logger_, logging::trivial::info)
+        << "Client " << socket->remote_endpoint()
+        << " entered incorrect song name: \"" << track_name << "\"";
+    logging::core::get()->flush();
     std::string notification = "Incorrect song name!";
     SendStringToPeer(socket, notification);
     return;
   }
-  // std::cout << "THIRD";
 
+  BOOST_LOG_SEV(logger_, logging::trivial::info)
+      << "Now playing \"" << track_name << "\" to client "
+      << socket->remote_endpoint();
+  logging::core::get()->flush();
   std::string notification = "Now playing: " + track_name;
   SendStringToPeer(socket, notification);
 
@@ -83,14 +121,20 @@ void AudioServer::StartAudioStream(std::shared_ptr<tcp::socket> socket,
     offset += chunk;
   }
   if (socket->is_open()) {
+    BOOST_LOG_SEV(logger_, logging::trivial::info)
+        << "Connection " << socket->remote_endpoint() << " successfully closed";
     socket->shutdown(tcp::socket::shutdown_both);
     socket->close();
+    logging::core::get()->flush();
   }
 }
 
 std::string AudioServer::ReceiveTrackName(std::shared_ptr<tcp::socket> socket) {
   std::string message = ReceiveStringFromPeer(socket);
-  std::cout << "Received message from client: " << message << std::endl;
+  BOOST_LOG_SEV(logger_, logging::trivial::info)
+      << "Received message from client " << socket->remote_endpoint() << ": \""
+      << message << "\"";
+  logging::core::get()->flush();
   return message;
 }
 
@@ -113,4 +157,12 @@ std::string AudioServer::ReceiveStringFromPeer(
   boost::asio::read(*socket, boost::asio::buffer(&message[0], message_length));
 
   return message;
+}
+
+std::string AudioServer::GetIpString(std::shared_ptr<tcp::socket> socket) {
+  auto ip_client_raw = socket->remote_endpoint();
+  std::ostringstream os;
+  os << ip_client_raw;
+  std::string ip_client = os.str();
+  return ip_client;
 }

@@ -3,11 +3,26 @@
 
 #include <SFML/Audio.hpp>
 #include <boost/asio.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/log/attributes/named_scope.hpp>
+#include <boost/log/attributes/timer.hpp>
+#include <boost/log/core.hpp>
+#include <boost/log/expressions.hpp>
+#include <boost/log/sources/record_ostream.hpp>
+#include <boost/log/sources/severity_logger.hpp>
+#include <boost/log/trivial.hpp>
+#include <boost/log/utility/setup/common_attributes.hpp>
+#include <boost/log/utility/setup/console.hpp>
+#include <boost/log/utility/setup/file.hpp>
 #include <iostream>
 #include <string>
 #include <thread>
 
 using boost::asio::ip::tcp;
+namespace logging = boost::log;
+namespace src = boost::log::sources;
+namespace keywords = boost::log::keywords;
+namespace expr = boost::log::expressions;
 
 /**
  * @brief Class for an audio server that streams audio data to connected clients.
@@ -20,10 +35,16 @@ class AudioServer {
      */
   AudioServer(const tcp::endpoint& endpoint)
       : io_context_(), acceptor_(io_context_, endpoint) {
+    InitializeLogger();
     StartServer();
   }
 
  private:
+  /**
+ * @brief Initialize the logging system.
+ */
+  void InitializeLogger();
+
   /**
      * @brief Starts the server and waits for clients to connect.
      */
@@ -75,8 +96,18 @@ class AudioServer {
  */
   std::string ReceiveStringFromPeer(std::shared_ptr<tcp::socket> socket);
 
+  /**
+ * @brief Get the IP address of the client as a string.
+ *
+ * @param socket The socket object representing the client connection.
+ * @return The IP address of the client as a string.
+ */
+  std::string GetIpString(std::shared_ptr<tcp::socket> socket);
+
   boost::asio::io_context io_context_;  ///< The Boost ASIO IO context.
   tcp::acceptor acceptor_;  ///< The TCP acceptor for incoming connections.
+  src::severity_logger<logging::trivial::severity_level>
+      logger_;  ///< The Boost Log logger.
 };
 
 #endif  // LAB5_H_SERVER_H_

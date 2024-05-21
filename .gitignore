@@ -10,7 +10,9 @@
 *.app
 
 **.json
+**.log
 
+**logs/
 **build/
 **.vscode/
 .clang-format
